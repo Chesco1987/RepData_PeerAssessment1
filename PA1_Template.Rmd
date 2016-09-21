@@ -1,0 +1,95 @@
+#First course project for the Reproducible Research course using Knitr
+by Francesco Mancino
+
+##Loading in the data
+```{r, echo= TRUE}
+df<-read.csv("/Users/francescomancino/Desktop/R-programming/Course5/Project1/activity.csv", 
+             header = TRUE, sep = ",", na.strings = "NA")
+```
+##1. What is mean total number of steps taken per day?
+```{r, echo=TRUE}
+a1<-aggregate(steps ~ date, data= df, sum, na.rm = TRUE)
+sm<- mean(a1$steps)
+smed<- median(a1$steps)
+```
+The mean total number of steps taken per day is `r sm` and the median number of steps taken per day is `r smed`.
+
+```{r echo=TRUE}
+hist(a1$steps, 
+      breaks=seq(from=0, to=35000, by=2500),
+      col="blue", 
+      xlab="Total number of steps", 
+      ylim=c(0, 20), 
+      main="Histogram of the total number of steps taken each day with NA's")
+```
+##2. What is the average daily activity pattern?
+
+The average daily activity is presented in the next plot
+```{r echo= TRUE}
+
+a2<-aggregate(steps ~ interval, data= df, mean, na.rm = TRUE)
+plot(a2$interval, a2$steps, type = "l")
+```
+
+The 5-minute interval that on average across all the days in the data set, contains the maximum number of steps is: 
+
+```{r echo=TRUE}
+max_pos <- which(a2$steps == max(a2$steps))
+max_interval<- a2[max_pos, 1]
+print(max_interval)
+```
+
+##3. Imputing missing values
+
+```{r echo = TRUE}
+na_count<-sum(is.na(df$steps))
+```
+There are `r na_count` missing values in the data set.
+
+The strategy for imputing the missing values is presented in the following code chunk:
+```{r echo = TRUE}
+
+tidydf<-df
+tidydf$steps[is.na(tidydf$steps)] <- median(df$steps, na.rm=TRUE)
+```
+
+
+```{r echo = TRUE}
+a3<-aggregate(steps ~ date, data= tidydf, sum)
+newmean<- mean(a3$steps)
+newmedian<- median(a3$steps)
+```
+
+The new mean and median with the imputed values equal `r newmean` and `r newmedian` respectively!
+
+The histogram has changed now that the missing values where replaced by the median number of steps taken each day: 
+
+```{r echo = TRUE}
+hist (a3$steps, 
+     breaks=seq(from=0, to=35000, by=2000),
+     col="green", 
+     xlab="Total number of steps", 
+     ylim=c(0, 15), 
+     main="Histogram of the total number of steps taken each day (with NA imputed)")
+```
+
+##4. Are there differences in activity patterns between weekdays and weekends?
+
+```{r echo = TRUE}
+tidydf$day=weekdays(as.Date(df$date))
+wday =subset(tidydf, ! day %in% c("Saturday","Sunday"))
+wkend =subset(tidydf,  day %in% c("Saturday","Sunday"))
+tidydf<- rbind(tidydf, wday, wkend)
+tidydf$weekend <- as.factor (ifelse(tidydf$day== "Saturday" |
+                                tidydf$day== "Sunday", "weekend","weekday"))
+```
+The previous code prepared the data set with the the sub setting of weekdays and weekends for answering question #4. 
+
+The time series plot for both weekdays and weekends is:
+```{r echo = TRUE}
+a4<-aggregate(steps ~ interval + weekend, data= tidydf, mean)
+library(lattice)
+xyplot(steps ~ interval | factor(weekend), data=a4, aspect=1/3, type="l")
+```
+
+
